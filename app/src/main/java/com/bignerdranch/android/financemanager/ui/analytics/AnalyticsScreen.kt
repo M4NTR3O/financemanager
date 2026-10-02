@@ -12,6 +12,14 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bignerdranch.android.financemanager.ui.common.MoneyText
 import com.bignerdranch.android.financemanager.ui.common.formatMoney
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.drawscope.Stroke
+import com.bignerdranch.android.financemanager.domain.analytics.CategorySlice
 
 @Composable
 fun AnalyticsScreen(vm: AnalyticsViewModel = hiltViewModel()) {
@@ -45,12 +53,17 @@ fun AnalyticsScreen(vm: AnalyticsViewModel = hiltViewModel()) {
         item {
             Text("Расходы по категориям",
                 style = MaterialTheme.typography.titleMedium)
-        }
-        if (s.expenseByCategory.isEmpty()) {
-            item { Text("Нет расходов", style = MaterialTheme.typography.bodySmall) }
-        } else {
-            items(s.expenseByCategory) { slice ->
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Spacer(Modifier.height(8.dp))
+            DonutChart(
+                slices = s.expenseByCategory,
+                modifier = Modifier.fillMaxWidth().height(240.dp)
+            )
+            Spacer(Modifier.height(16.dp))
+            s.expenseByCategory.forEach { slice ->
+                Row(
+                    Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
                     Text(slice.category.name)
                     Text(formatMoney(slice.total))
                 }
@@ -94,5 +107,46 @@ fun AnalyticsScreen(vm: AnalyticsViewModel = hiltViewModel()) {
         }
 
         item { Spacer(Modifier.height(32.dp)) }
+    }
+}
+
+@Composable
+fun DonutChart(
+    slices: List<CategorySlice>,
+    modifier: Modifier = Modifier
+) {
+    if (slices.isEmpty()) {
+        Box(modifier, contentAlignment = Alignment.Center) {
+            Text("Нет данных", style = MaterialTheme.typography.bodySmall)
+        }
+        return
+    }
+    val total = slices.sumOf { it.total.toDouble() }.toFloat().coerceAtLeast(1f)
+    val colors = listOf(
+        Color(0xFF69F0AE), Color(0xFF448AFF), Color(0xFFFFAB40),
+        Color(0xFFE040FB), Color(0xFFFF5252), Color(0xFF18FFFF)
+    )
+    Box(modifier, contentAlignment = Alignment.Center) {
+        Canvas(modifier = Modifier.size(220.dp)) {
+            var startAngle = -90f
+            slices.forEachIndexed { i, slice ->
+                val sweep = (slice.total.toFloat() / total) * 360f
+                drawArc(
+                    color = colors[i % colors.size],
+                    startAngle = startAngle,
+                    sweepAngle = sweep,
+                    useCenter = false,
+                    style = Stroke(width = 40.dp.toPx(), cap = StrokeCap.Butt)
+                )
+                startAngle += sweep
+            }
+        }
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("Всего", style = MaterialTheme.typography.labelSmall)
+            Text(
+                formatMoney(slices.fold(java.math.BigDecimal.ZERO) { a, s -> a + s.total }),
+                style = MaterialTheme.typography.titleMedium
+            )
+        }
     }
 }

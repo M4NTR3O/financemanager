@@ -25,6 +25,11 @@ android {
     kotlinOptions { jvmTarget = "17" }
     // Важно для local-only: отключаем auto backup
     packaging { resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" } }
+    buildTypes {
+        getByName("release") {
+            signingConfig = signingConfigs.getByName("debug")
+        }
+    }
 }
 
 dependencies {
@@ -35,6 +40,7 @@ dependencies {
     implementation(libs.compose.ui.tooling.preview)
     implementation(libs.compose.material3)
     implementation(libs.compose.material.icons)
+    implementation(libs.androidx.ui.graphics)
     debugImplementation(libs.compose.ui.tooling)
 
     implementation(libs.nav.compose)

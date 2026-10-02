@@ -10,6 +10,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -36,13 +37,21 @@ fun HomeScreen(
         }
     ) { pad ->
         Column(Modifier.fillMaxSize().padding(pad).padding(16.dp)) {
-            Card(Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(16.dp)) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp),
+                colors = androidx.compose.material3.CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                ),
+                elevation = androidx.compose.material3.CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(Modifier.padding(20.dp)) {
                     Text("Текущий баланс", style = MaterialTheme.typography.labelLarge)
                     Spacer(Modifier.height(4.dp))
                     MoneyText(
-                        value = s.balance, fontSize = 32.sp(),
-                        weight = androidx.compose.ui.text.font.FontWeight.Bold,
+                        value = s.balance,
+                        fontSize = 40.sp(),
+                        weight = FontWeight.Bold,
                         color = if (s.balance.signum() < 0) MaterialTheme.colorScheme.error
                         else MaterialTheme.colorScheme.onSurface
                     )

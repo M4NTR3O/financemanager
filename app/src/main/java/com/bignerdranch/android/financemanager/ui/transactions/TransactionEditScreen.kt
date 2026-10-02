@@ -1,11 +1,12 @@
 package com.bignerdranch.android.financemanager.ui.transactions
 
+import android.app.TimePickerDialog
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -14,8 +15,13 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bignerdranch.android.financemanager.domain.model.CategoryType
 import com.bignerdranch.android.financemanager.ui.common.AmountField
+import java.time.Instant
 import java.time.ZoneId
+import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -25,6 +31,9 @@ fun TransactionEditScreen(
     vm: TransactionEditViewModel = hiltViewModel()
 ) {
     val s by vm.state.collectAsStateWithLifecycle()
+
+    var showDatePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
 
     LaunchedEffect(s.saved) { if (s.saved) onDone() }
 
@@ -40,16 +49,17 @@ fun TransactionEditScreen(
     ) { pad ->
         Column(Modifier.fillMaxSize().padding(pad).padding(16.dp)) {
             // Тип
-            Row(Modifier.selectableGroup()) {
-                FilterChip(
+            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                SegmentedButton(
                     selected = s.type == CategoryType.Expense,
                     onClick = { vm.onType(CategoryType.Expense) },
-                    label = { Text("Расход") },
-                    modifier = Modifier.padding(end = 8.dp)
+                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                    label = { Text("Расход") }
                 )
-                FilterChip(
+                SegmentedButton(
                     selected = s.type == CategoryType.Income,
                     onClick = { vm.onType(CategoryType.Income) },
+                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
                     label = { Text("Доход") }
                 )
             }
@@ -94,8 +104,21 @@ fun TransactionEditScreen(
                 onValueChange = {},
                 readOnly = true,
                 label = { Text("Дата и время") },
-                modifier = Modifier.fillMaxWidth()
+                trailingIcon = {
+                    IconButton(onClick = { showDatePicker = true }) {
+                        Icon(Icons.Filled.DateRange, "Выбрать дату")
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { showDatePicker = true }  // ← клик по всему полю
             )
+            Spacer(Modifier.height(4.dp))
+            TextButton(onClick = { showTimePicker = true }) {
+                Icon(Icons.Filled.DateRange, null, Modifier.size(18.dp))
+                Spacer(Modifier.width(4.dp))
+                Text("Изменить время")
+            }
             Spacer(Modifier.height(12.dp))
             OutlinedTextField(
                 value = s.comment,
@@ -116,5 +139,58 @@ fun TransactionEditScreen(
                 enabled = s.amount.isNotBlank() && s.categoryId != null
             ) { Text("Сохранить") }
         }
+    }
+    if (showDatePicker) {
+        val state = rememberDatePickerState(
+            initialSelectedDateMillis = s.dateTime.toEpochMilli()
+        )
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    state.selectedDateMillis?.let { millis ->
+                        val currentZoned = s.dateTime.atZone(ZoneId.systemDefault())
+                        val newDate = java.time.Instant.ofEpochMilli(millis)
+                            .atZone(ZoneOffset.UTC)
+                            .toLocalDate()
+                        val newDateTime = newDate.atTime(
+                            currentZoned.hour, currentZoned.minute
+                        ).atZone(ZoneId.systemDefault()).toInstant()
+                        vm.onDateTime(newDateTime)
+                    }
+                    showDatePicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Отмена") }
+            }
+        ) {
+            DatePicker(state = state)
+        }
+    }
+
+    if (showTimePicker) {
+        val currentZoned = s.dateTime.atZone(ZoneId.systemDefault())
+        val timeState = rememberTimePickerState(
+            initialHour = currentZoned.hour,
+            initialMinute = currentZoned.minute,
+            is24Hour = true
+        )
+        AlertDialog(
+            onDismissRequest = { showTimePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    val newDateTime = currentZoned.toLocalDate()
+                        .atTime(timeState.hour, timeState.minute)
+                        .atZone(ZoneId.systemDefault()).toInstant()
+                    vm.onDateTime(newDateTime)
+                    showTimePicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTimePicker = false }) { Text("Отмена") }
+            },
+            text = { TimePicker(state = timeState) }
+        )
     }
 }
