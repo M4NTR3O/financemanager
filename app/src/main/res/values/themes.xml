@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Для Compose-приложения достаточно системной темы.
+         Compose сам рисует весь UI, поэтому Material Components здесь не обязательны. -->
+    <style name="Theme.FinanceManager" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>
